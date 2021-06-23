@@ -129,6 +129,26 @@ public class EmployeeMongo {
 		
 		routingContext.response().setChunked(true).end("updated successfully");
 	});
+	 
+	   /*increment income*/
+
+        Route getIncrementHandler = router.put("/incrementIncome/:name").handler(routingContext ->{
+           String name = routingContext.request().getParam("name");
+           MongoCollection<Document> collection = db.getCollection("employeeInfo");
+
+            FindIterable<Document> somebody = collection.find(Filters.eq("name", name));
+
+            for(Document id:somebody){
+                int salary = (int) id.get("salary");
+                int sal = salary+10000;
+                collection.updateOne(Filters.eq("name", name), Updates.set("salary", sal));
+            }
+
+
+            routingContext.response().setChunked(true).end("updated successfully");
+
+
+        });
 	
 
 	server.requestHandler(router::accept).listen(8080);
