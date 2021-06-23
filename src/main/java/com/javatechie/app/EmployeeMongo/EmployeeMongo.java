@@ -44,6 +44,23 @@ public class EmployeeMongo {
     HttpServer server = vertx.createHttpServer(); // httpServer object
     
     Router router = Router.router(vertx); //router object
+	  
+    vertx.eventBus().consumer("hello.vertx.addr", msg->{
+            String name = (String)msg.body();
+            MongoCollection<Document> collection = db.getCollection("employeeInfo");//collection reference
+            MongoCursor<Document> cur = collection.find().iterator();//cursor pointing to the current document
+            List<String> li = new ArrayList<>();//creating a list
+            while(cur.hasNext()) {
+                Document docu  = cur.next();//pointing to the current document and then moving to the next
+                Collection<Object> info = docu.values();//getting the value of the document
+                String json = new Gson().toJson(info );//converting to string
+                if(json.contains(name)) {//matching whether it contains the name
+                    li.add(json);
+                }
+
+            }
+            msg.reply(li.toString());
+        });
     
     /**
      * @POST Method
@@ -89,20 +106,9 @@ public class EmployeeMongo {
 	Route getFilterHandler = router.get("/getFromMongo/:name").produces("*/json").handler(routingContext -> {
 		String name = routingContext.request().getParam("name"); // extracting the name from the url
 		
-        MongoCollection<Document> collection = db.getCollection("employeeInfo");//collection reference
-        MongoCursor<Document> cur = collection.find().iterator();//cursor pointing to the current document
-        List<String> li = new ArrayList<>();//creating a list
-        while(cur.hasNext()) {
-        	Document docu  = cur.next();//pointing to the current document and then moving to the next
-        	Collection<Object> info = docu.values();//getting the value of the document
-        	String json = new Gson().toJson(info );//converting to string
-        	if(json.contains(name)) {//matching whether it contains the name
-        		li.add(json);
-        	}
-        	
-        }
-		
-		routingContext.response().setChunked(true).end(li.toString());//returns the list to the caller as a string
+       		 vertx.eventBus().send("hello.vertx.addr",name,reply->{
+                routingContext.request().response().end((String)reply.result().body());
+            });
 	});
 	
 	/*delete api*/
